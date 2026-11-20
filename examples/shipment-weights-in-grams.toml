@@ -1,0 +1,16 @@
+# Carriers 3 and 5 changed their feed format on 2025-06-01 and started sending weights in
+# grams. Real shipments here weigh 5 to 2,000 kg, so anything above 5,000 kg from those
+# carriers since then is a gram value. Convert it back to kilograms.
+name = "shipment-weights-in-grams"
+table = "public.shipments"
+where = "carrier_id in (3, 5) and shipped_on >= date '2025-06-01' and weight_kg > 5000"
+set = { weight_kg = "round(weight_kg / 1000, 3)" }
+
+# From the dry run on `safe-fix demo --rows 2000000`. Any other count aborts the fix.
+expect_rows = 293147
+
+# Must return 0 after the update, inside the same transaction.
+verify = """
+select count(*) from public.shipments
+where carrier_id in (3, 5) and shipped_on >= date '2025-06-01' and weight_kg > 5000
+"""
